@@ -2,8 +2,6 @@ import type { BaselineAnswers } from '@/features/diagnosis/types';
 import type {
   SubmitGameRequest,
   SubmitGameResponse,
-  VoiceRespondRequest,
-  VoiceRespondResponse,
 } from '@/features/games/types';
 import type { ResultResponse } from '@/features/result/types';
 
@@ -53,23 +51,6 @@ export async function submitGame(
   return res.json();
 }
 
-// Game 2 サポート担当の返答をAIで生成する。返答内容は演出用で、性格判定のスコア計算には使用しない。
-export async function postVoiceRespond(
-  body: VoiceRespondRequest
-): Promise<VoiceRespondResponse> {
-  const res = await fetch(`${API_BASE}/api/voice/respond`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => null);
-    throw new Error(errorData?.message || 'AI返答の生成に失敗しました');
-  }
-
-  return res.json();
-}
 
 export async function getResult(userId: string): Promise<ResultResponse> {
   const res = await fetch(`${API_BASE}/api/results/${userId}`, {

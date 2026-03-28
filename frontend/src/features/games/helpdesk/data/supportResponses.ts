@@ -16,7 +16,7 @@ export const FINAL_SUPPORT_MESSAGE =
   'もういいです！わかりました！こちらでもう一度確認しますので、一旦失礼します！！';
 
 /**
- * POST /api/voice/respond が失敗した場合のフォールバック応答。
+ * サポート担当の定型応答。
  * 返答内容は演出用で性格判定のスコア計算には使用しない。
  */
 export const SUPPORT_RESPONSES = [

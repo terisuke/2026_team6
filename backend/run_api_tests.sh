@@ -23,10 +23,8 @@ REGISTER_PAYLOAD='{
   "mbti": "INTJ",
   "baseline_answers": {
     "q1_caution": "A",
-    "q2_calmness": "D",
-    "q3_logic": "A",
-    "q4_cooperativeness": "C",
-    "q5_positivity": "B"
+    "q2_cooperativeness": "C",
+    "q3_positivity": "B"
   }
 }'
 
@@ -172,26 +170,6 @@ else
      echo -e "${text_red}❌ Failed to retrieve valid results.${text_reset}"
 fi
 
-# 6. Test Voice (Gemini)
-echo 
-echo -e "${text_bold}6. Testing Voice (Gemini)...${text_reset}"
-VOICE_PAYLOAD='{
-  "user_id": "'"$USER_ID"'",
-  "message": "テストです。パスワードを忘れました。"
-}'
-
-VOICE_RESPONSE=$(curl -s -X POST "$BASE_URL/voice/respond" \
-  -H "Content-Type: application/json" \
-  -d "$VOICE_PAYLOAD")
-
-echo "Response: $VOICE_RESPONSE"
-RESPONSE_TEXT=$(echo $VOICE_RESPONSE | jq -r '.response // "null"')
-
-if [ "$RESPONSE_TEXT" != "null" ]; then
-    echo -e "${text_green}✅ Voice API Success. Response: $RESPONSE_TEXT${text_reset}"
-else
-    echo -e "${text_red}❌ Voice API Failed.${text_reset}"
-fi
 
 echo 
 echo -e "${BACKGROUND_GREEN}${text_bold} 🎉 All Tests Completed! ${text_reset}"

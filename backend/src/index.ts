@@ -6,7 +6,6 @@ import cors from 'cors';
 import registerRouter from './routes/register';
 import gamesRouter from './routes/games';
 import resultsRouter from './routes/results';
-import voiceRouter from './routes/voice';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -31,7 +30,6 @@ app.use(express.json());
 app.use('/api/register', registerRouter);
 app.use('/api/games', gamesRouter);
 app.use('/api/results', resultsRouter);
-app.use('/api/voice', voiceRouter);
 
 // Health check
 app.get('/health', async (req, res) => {

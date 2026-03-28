@@ -30,7 +30,7 @@
                 ],
                 "body": {
                     "mode": "raw",
-                    "raw": "{\n    \"mbti\": \"INTJ\",\n    \"baseline_answers\": {\n        \"q1_caution\": \"A\",\n        \"q2_calmness\": \"D\",\n        \"q3_logic\": \"B\",\n        \"q4_cooperativeness\": \"C\",\n        \"q5_positivity\": \"A\"\n    }\n}"
+                    "raw": "{\n    \"mbti\": \"INTJ\",\n    \"baseline_answers\": {\n        \"q1_caution\": \"A\",\n        \"q2_cooperativeness\": \"C\",\n        \"q3_positivity\": \"A\"\n    }\n}"
                 },
                 "url": {
                     "raw": "{{base_url}}/register",
@@ -111,33 +111,6 @@
                     "path": [
                         "results",
                         "{{user_id}}"
-                    ]
-                }
-            },
-            "response": []
-        },
-        {
-            "name": "5. Voice Response",
-            "request": {
-                "method": "POST",
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n    \"message\": \"こんにちは！調子はどうですか？\",\n    \"scenario_type\": \"normal\"\n}"
-                },
-                "url": {
-                    "raw": "{{base_url}}/voice/respond",
-                    "host": [
-                        "{{base_url}}"
-                    ],
-                    "path": [
-                        "voice",
-                        "respond"
                     ]
                 }
             },

@@ -6,7 +6,6 @@ import type {
   Game2Turn,
   TextInputMetrics,
 } from '@/features/games/types';
-import { postVoiceRespond } from '@/lib/api';
 import {
   GAME_TOPIC,
   INITIAL_SUPPORT_MESSAGE,
@@ -16,6 +15,7 @@ import {
   DEFAULT_HINTS,
   HINT_MAPPING,
   MAX_TURNS,
+  SUPPORT_RESPONSES,
   TURN_TIME_LIMIT_MS,
 } from '../data/supportResponses';
 import type { AudioMetricsResult } from './useAudioMetrics';
@@ -29,7 +29,7 @@ import { useTypingMetrics } from './useTypingMetrics';
  * instruction       → 開始前の指示ポップアップ表示中
  * support-speaking  → サポート担当の発言をチャットに追加中
  * user-input        → ユーザーの音声/テキスト入力待ち（20秒タイマー稼働）
- * voice-api-error   → AI応答API失敗、リトライ待ち
+ * voice-api-error   → 応答取得失敗、リトライ待ち
  * submitting        → 全ラリー完了、Game2Data を組み立てて onComplete に渡す
  * completed         → 送信完了、次の画面への遷移待ち
  * error             → その他エラー
@@ -67,13 +67,20 @@ export function useHelpdeskGame(options: {
   const { onComplete } = options;
 
   // --- UI に直接反映するステート ---
-  const [inputMethod, setInputMethod] = useState<'voice' | 'text'>('voice');
+  const [inputMethod, setInputMethod] = useState<'voice' | 'text'>(() => {
+    if (typeof window === 'undefined') return 'voice';
+    const supported =
+      !!((window as Window & { SpeechRecognition?: unknown }).SpeechRecognition ||
+        (window as Window & { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition) &&
+      !!window.speechSynthesis;
+    return supported ? 'voice' : 'text';
+  });
   const [currentTurn, setCurrentTurn] = useState(0); // 0〜2（3ラリー）
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]); // 表示用メッセージ履歴
   const [turns, setTurns] = useState<Game2Turn[]>([]); // 収集データ用ターンログ
   const [gamePhase, setGamePhase] = useState<GamePhase>('tutorial');
   const [remainingTimeMs, setRemainingTimeMs] = useState(TURN_TIME_LIMIT_MS);
-  const [voiceApiRetrying, setVoiceApiRetrying] = useState(false);
+  const [voiceApiRetrying] = useState(false);
   const [currentHints, setCurrentHints] = useState<string[]>(INITIAL_HINTS);
 
   // --- 環境チェック & SE 準備 ---
@@ -96,18 +103,11 @@ export function useHelpdeskGame(options: {
       callingAudioRef.current.loop = true;
       hangupAudioRef.current = new Audio('/sounds/電話が切れる1.mp3');
 
-      // 非対応ブラウザならテキストモードへ強制
-      if (!isSpeechSupported) {
-        setInputMethod('text');
-      }
+
     }
   }, [isSpeechSupported]);
 
   // --- 再レンダリング不要なデータを ref で管理 ---
-  const pendingVoiceRequestRef = useRef<{
-    userMessage: string;
-    conversationHistory: { role: 'user' | 'assistant'; content: string }[];
-  } | null>(null);
   const chatHistoryRef = useRef<ChatMessage[]>([]);
   const currentTurnRef = useRef(0);
   const inputMethodRef = useRef(inputMethod);
@@ -279,8 +279,6 @@ export function useHelpdeskGame(options: {
   // サポート担当の TTS 読み上げ → user-input へ遷移
   // =========================================================
 
-  // POST /api/voice/respond で AI 応答を取得し、チャットに追加 → TTS 読み上げ → user-input へ遷移。
-  // API 失敗時は voice-api-error に遷移し、リトライを促す（モックデータは使用しない）。
   const addSupportResponseAndSpeak = useCallback((supportText: string) => {
     setChatHistory((prev) => [...prev, { role: 'support', text: supportText }]);
 
@@ -353,40 +351,9 @@ export function useHelpdeskGame(options: {
       } else if (currentTurn === MAX_TURNS) {
         supportText = FINAL_SUPPORT_MESSAGE;
       } else {
-        const history = chatHistoryRef.current;
-        const lastUserMsg = [...history]
-          .reverse()
-          .find((m) => m.role === 'user');
-        const userMessage = lastUserMsg?.text || GAME_TOPIC;
-
-        const conversationHistory = history.map((m) => ({
-          role: (m.role === 'support' ? 'assistant' : 'user') as
-            | 'user'
-            | 'assistant',
-          content: m.text,
-        }));
-
-        try {
-          const userId =
-            typeof window !== 'undefined'
-              ? localStorage.getItem('user_id')
-              : null;
-          if (!userId) throw new Error('user_id not found');
-          const result = await postVoiceRespond({
-            user_id: userId,
-            message: userMessage,
-            conversation_history: conversationHistory,
-          });
-          supportText = result.response;
-        } catch {
-          if (cancelled) return;
-          pendingVoiceRequestRef.current = {
-            userMessage,
-            conversationHistory,
-          };
-          setGamePhase('voice-api-error');
-          return;
-        }
+        // Gemini API removed: use static fallback responses
+        const responseIndex = Math.min(currentTurn, SUPPORT_RESPONSES.length - 1);
+        supportText = SUPPORT_RESPONSES[responseIndex];
       }
 
       if (cancelled) return;
@@ -413,27 +380,8 @@ export function useHelpdeskGame(options: {
   }, [gamePhase, currentTurn, addSupportResponseAndSpeak]);
 
   const retryVoiceApi = useCallback(async () => {
-    const pending = pendingVoiceRequestRef.current;
-    if (!pending) return;
-
-    setVoiceApiRetrying(true);
-
-    try {
-      const userId =
-        typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
-      if (!userId) throw new Error('user_id not found');
-      const result = await postVoiceRespond({
-        user_id: userId,
-        message: pending.userMessage,
-        conversation_history: pending.conversationHistory,
-      });
-      addSupportResponseAndSpeak(result.response);
-    } catch {
-      pendingVoiceRequestRef.current = pending;
-    } finally {
-      setVoiceApiRetrying(false);
-    }
-  }, [addSupportResponseAndSpeak]);
+    // Voice API removed; retry is no longer needed
+  }, []);
 
   // =========================================================
   // user-input フェーズ: 録音開始 & 20秒タイマー

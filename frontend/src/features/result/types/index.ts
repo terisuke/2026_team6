@@ -1,5 +1,5 @@
 // ========================================
-// 5軸スコア（DiagnosisScores）
+// 5-axis scores (DiagnosisScores)
 // ========================================
 
 export interface DiagnosisScores {
@@ -11,7 +11,7 @@ export interface DiagnosisScores {
 }
 
 // ========================================
-// 診断フィードバック（DiagnosisFeedback）
+// Diagnosis feedback (DiagnosisFeedback)
 // ========================================
 
 export interface DiagnosisFeedback {
@@ -21,7 +21,7 @@ export interface DiagnosisFeedback {
 }
 
 // ========================================
-// 詳細画面用: 特性スコア・メトリクス
+// Detail screen: feature scores & metrics
 // ========================================
 
 export interface FeatureScore {
@@ -31,13 +31,11 @@ export interface FeatureScore {
 }
 
 export type MetricCategory =
-  | 'scroll'
-  | 'time'
-  | 'mouse'
-  | 'input'
-  | 'voice'
-  | 'logic'
-  | 'social';
+  | 'trajectory'
+  | 'timing'
+  | 'velocity'
+  | 'deviation'
+  | 'decision';
 
 export interface Metric {
   label: string;
@@ -53,24 +51,34 @@ export interface GameDetail {
 }
 
 // ========================================
-// 各ゲームの行動要約（phase_summaries）
+// Phase summaries (warmup / main / pressure)
 // ========================================
 
 export interface PhaseSummaries {
-  phase_1: string;
-  phase_2: string;
-  phase_3: string;
+  warmup: string;
+  main: string;
+  pressure: string;
 }
 
 // ========================================
-// 診断結果レスポンス（ResultResponse）
+// Game breakdown (single swipe game)
+// ========================================
+
+export interface GameBreakdown {
+  swipe_game: Partial<DiagnosisScores>;
+}
+
+// ========================================
+// Result details (single game)
 // ========================================
 
 export interface ResultDetails {
-  game_1: GameDetail;
-  game_2: GameDetail;
-  game_3: GameDetail;
+  swipe_game: GameDetail;
 }
+
+// ========================================
+// Result response (ResultResponse)
+// ========================================
 
 export interface ResultResponse {
   user_id: string;
@@ -79,7 +87,7 @@ export interface ResultResponse {
   scores: DiagnosisScores;
   baseline_scores: DiagnosisScores;
   gaps: DiagnosisScores;
-  game_breakdown: Record<string, Partial<DiagnosisScores>>;
+  game_breakdown: GameBreakdown;
   feedback: DiagnosisFeedback;
   accuracy_score: number;
   phase_summaries: PhaseSummaries;

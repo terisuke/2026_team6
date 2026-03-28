@@ -1,5 +1,5 @@
 // ========================================
-// API Request/Response型
+// API Request/Response types
 // ========================================
 
 export interface BaselineScores {
@@ -14,15 +14,13 @@ export type AnswerOption = 'A' | 'B' | 'C' | 'D';
 
 export interface BaselineAnswers {
   q1_caution: AnswerOption;
-  q2_calmness: AnswerOption;
-  q3_logic: AnswerOption;
-  q4_cooperativeness: AnswerOption;
-  q5_positivity: AnswerOption;
+  q2_cooperativeness: AnswerOption;
+  q3_positivity: AnswerOption;
 }
 
 export interface RegisterRequest {
-  mbti?: string | null; // オプショナル
-  baseline_answers: BaselineAnswers; // 必須
+  mbti?: string | null; // optional
+  baseline_answers: BaselineAnswers; // required
 }
 
 export interface RegisterResponse {
@@ -30,12 +28,12 @@ export interface RegisterResponse {
   status: "success";
 }
 
-export type GameType = 1 | 2 | 3;
+export type GameType = 1;
 
 export interface SubmitGameRequest {
   user_id: string;
   game_type: GameType;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export interface SubmitGameResponse {
@@ -50,29 +48,27 @@ export interface DiagnosisFeedback {
 }
 
 export interface GameBreakdown {
-  game_1?: Partial<BaselineScores>;
-  game_2?: Partial<BaselineScores>;
-  game_3?: Partial<BaselineScores>;
+  swipe_game?: Partial<BaselineScores>;
 }
 
 export interface PhaseSummaries {
-  phase_1: string; // 利用規約での行動サマリー
-  phase_2: string; // カスタマーサポートでの行動サマリー
-  phase_3: string; // グループチャットでの行動サマリー
+  warmup: string;
+  main: string;
+  pressure: string;
 }
 
 export interface ResultResponse {
   user_id: string;
   self_mbti: string | null;
-  mbti_scores: BaselineScores | null; // MBTI理論値スコア（スキップ時はnull）
-  scores: BaselineScores; // 実測スコア
-  baseline_scores: BaselineScores; // 自己申告スコア
-  gaps: BaselineScores; // 差分
+  mbti_scores: BaselineScores | null;
+  scores: BaselineScores;
+  baseline_scores: BaselineScores;
+  gaps: BaselineScores;
   game_breakdown: GameBreakdown;
   feedback: DiagnosisFeedback;
-  accuracy_score: number; // 自己認識精度（0-100）
-  phase_summaries: PhaseSummaries; // 各フェーズの振り返りテキスト
-  details: any; // 各ゲームごとの詳細メトリクスと特徴スコア
+  accuracy_score: number;
+  phase_summaries: PhaseSummaries;
+  details: Record<string, unknown>;
 }
 
 export interface ApiError {
@@ -82,7 +78,7 @@ export interface ApiError {
 }
 
 // ========================================
-// DB型定義
+// DB types
 // ========================================
 
 export interface User {
@@ -100,18 +96,16 @@ export interface GameLog {
   id: number;
   user_id: string;
   game_type: number;
-  raw_data: any;
+  raw_data: Record<string, unknown>;
   played_at: string;
 }
 
 // ========================================
-// Enum
+// Constants
 // ========================================
 
 export const GAME_TYPES = {
-  TERMS_GAME: 1,
-  AI_CHAT: 2,
-  GROUP_CHAT: 3,
+  SWIPE_GAME: 1,
 } as const;
 
 export const SCORE_KEYS = {

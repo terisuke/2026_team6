@@ -75,19 +75,6 @@ export interface Game2Data {
   textInputMetrics: TextInputMetrics | null;
 }
 
-// Game 2: AI返答生成API (POST /api/voice/respond)
-export interface VoiceRespondRequest {
-  user_id: string;
-  message: string;
-  conversation_history?: { role: 'user' | 'assistant'; content: string }[];
-}
-
-export interface VoiceRespondResponse {
-  response: string;
-  emotion: string;
-  confidence: number;
-}
-
 // ========================================
 // Game 3: グループチャット（空気読み）
 // ========================================

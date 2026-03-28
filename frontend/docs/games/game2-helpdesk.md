@@ -124,47 +124,7 @@
 
 **成功時:** Game 3 画面（`/games/group-chat`）へ自動遷移。
 
-### 2. AI返答生成（サポート担当の応答）
+### 2. サポート担当の応答
 
-**エンドポイント:** `POST /api/voice/respond`
-
-**トリガー:** ユーザーの1ラリー完了後、次のサポート担当返答を表示する際に呼び出す
-
-**重要:** 返答内容は演出用であり、性格診断のスコア計算には使用しない。
-
-**リクエスト:**
-
-```json
-{
-  "user_id": "uuid-1234-5678",
-  "message": "パスワードを忘れました",
-  "conversation_history": [
-    { "role": "user", "content": "ログインできません" },
-    { "role": "assistant", "content": "どのような問題でしょうか？" }
-  ]
-}
-```
-
-- `user_id` (string, required): ユーザーID
-- `message` (string, required): ユーザーの直近の発言
-- `conversation_history` (array, optional): 過去のやり取り（最大5〜10ターン）
-
-**レスポンス（成功 200）:**
-
-```json
-{
-  "response": "パスワードリセットは設定画面から行えます！（多分）",
-  "emotion": "confused",
-  "confidence": 0.6
-}
-```
-
-- `response` (string): サポート担当の返答テキスト
-- `emotion` (string): 表情変化用（UI演出、optional）
-- `confidence` (number): 回答の自信度（UI演出、optional）
-
-**エラー（400）:** `{ "status": "error", "error": "invalid_user_id", "message": "..." }`
-
-**エラー（500）:** `{ "status": "error", "error": "ai_generation_failed", "message": "..." }`
-
-**現在の仮実装:** `supportResponses.ts` にハードコードされた固定応答で代替。バックエンド接続時にAPI呼び出しへ切り替える。
+サポート担当の応答は `supportResponses.ts` に定義された固定応答を使用する。
+返答内容は演出用であり、性格診断のスコア計算には使用しない。
