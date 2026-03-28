@@ -2,22 +2,24 @@ import { v4 as uuidv4 } from 'uuid';
 import { userRepository } from '../repositories/userRepository';
 import { BaselineAnswers, BaselineScores } from '../types';
 
-// 回答 → スコア変換マップ
+// 回答 → スコア変換マップ（論文ベース4段階）
 const SCORE_MAP: Record<string, number> = {
-    'A': 100, // Strongly Agree
-    'B': 75,  // Agree
-    'C': 25,  // Disagree (Skip 50 to force choice)
-    'D': 0,   // Strongly Disagree
+    'A': 25,  // low
+    'B': 45,
+    'C': 65,
+    'D': 85,  // high
 };
 
+const DEFAULT_NEUTRAL_SCORE = 50;
+
 function convertAnswersToScores(answers: BaselineAnswers): BaselineScores {
-    const convert = (value: string): number => SCORE_MAP[value] ?? 50;
+    const convert = (value: string): number => SCORE_MAP[value] ?? DEFAULT_NEUTRAL_SCORE;
     return {
         caution: convert(answers.q1_caution),
-        calmness: convert(answers.q2_calmness),
-        logic: convert(answers.q3_logic),
-        cooperativeness: convert(answers.q4_cooperativeness),
-        positivity: convert(answers.q5_positivity),
+        calmness: DEFAULT_NEUTRAL_SCORE,
+        logic: DEFAULT_NEUTRAL_SCORE,
+        cooperativeness: convert(answers.q2_cooperativeness),
+        positivity: convert(answers.q3_positivity),
     };
 }
 
@@ -35,7 +37,7 @@ export const registerService = {
             throw { status: 400, code: 'invalid_request', message: 'baseline_answers is required' };
         }
 
-        const requiredKeys = ['q1_caution', 'q2_calmness', 'q3_logic', 'q4_cooperativeness', 'q5_positivity'];
+        const requiredKeys = ['q1_caution', 'q2_cooperativeness', 'q3_positivity'];
         const providedKeys = Object.keys(baselineAnswers);
         const missingKeys = requiredKeys.filter(k => !providedKeys.includes(k));
 
@@ -44,13 +46,12 @@ export const registerService = {
         }
 
         const validValues = ['A', 'B', 'C', 'D'];
-        const invalidKeys = requiredKeys.filter(k => !validValues.includes((baselineAnswers as any)[k]));
+        const invalidKeys = requiredKeys.filter(k => !validValues.includes((baselineAnswers as unknown as Record<string, string>)[k]));
         if (invalidKeys.length > 0) {
-            // エラーメッセージで有効な値を案内
             throw { status: 400, code: 'invalid_answers', message: `Answers must be one of [${validValues.join(', ')}]. Invalid keys: ${invalidKeys.join(', ')}` };
         }
 
-        // A-E → 数値に変換
+        // A-D → 数値に変換（calmness, logicはデフォルト50）
         const baselineScores = convertAnswersToScores(baselineAnswers);
 
         const userId = uuidv4();

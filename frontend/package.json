@@ -11,6 +11,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.100.1",
     "framer-motion": "^12.34.2",
     "jotai": "^2.18.0",
     "lucide-react": "^0.575.0",
