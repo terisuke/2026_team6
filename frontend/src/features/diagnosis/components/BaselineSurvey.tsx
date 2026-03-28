@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAtomValue } from 'jotai';
 import { useRouter } from 'next/navigation';
 import { mbtiAtom } from '@/stores/diagnosis';
-import { game1DataAtom } from '@/stores/games';
 import {
   QUESTIONS,
   type QuestionKey,
@@ -12,7 +11,7 @@ import {
   type AnswerOption,
 } from '@/features/diagnosis/types';
 import LoadingScreen from '@/components/common/LoadingScreen';
-import { postRegister, submitGame } from '@/lib/api';
+import { registerUser } from '@/lib/db';
 
 type Status = 'answering' | 'loading' | 'error' | 'success';
 
@@ -20,7 +19,6 @@ type Status = 'answering' | 'loading' | 'error' | 'success';
 export default function BaselineSurvey() {
   const router = useRouter();
   const mbti = useAtomValue(mbtiAtom);
-  const game1Data = useAtomValue(game1DataAtom);
 
   const bgmRef = useRef<HTMLAudioElement | null>(null);
 
@@ -60,36 +58,24 @@ export default function BaselineSurvey() {
   const currentQuestion = QUESTIONS[currentIndex];
   const totalQuestions = QUESTIONS.length;
 
-  const submitToApi = useCallback(
+  const submitToDb = useCallback(
     async (finalAnswers: BaselineAnswers) => {
       setStatus('loading');
 
       try {
-        const result = await postRegister({
-          mbti,
-          baseline_answers: finalAnswers,
-        });
-
-        localStorage.setItem('user_id', result.user_id);
-
-        if (game1Data) {
-          await submitGame({
-            user_id: result.user_id,
-            game_type: 1,
-            data: game1Data as unknown as Record<string, unknown>,
-          });
-        }
+        const userId = await registerUser(mbti, finalAnswers);
+        localStorage.setItem('user_id', userId);
 
         setStatus('success');
 
         setTimeout(() => {
-          router.push('/games/helpdesk');
+          router.push('/game');
         }, 2000);
       } catch {
         setStatus('error');
       }
     },
-    [mbti, router, game1Data]
+    [mbti, router]
   );
 
   const handleAnswer = (value: AnswerOption) => {
@@ -100,13 +86,13 @@ export default function BaselineSurvey() {
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      submitToApi(newAnswers as BaselineAnswers);
+      submitToDb(newAnswers as BaselineAnswers);
     }
   };
 
   const handleRetry = () => {
     playSE('/sounds/general-button-se.mp3');
-    submitToApi(answers as BaselineAnswers);
+    submitToDb(answers as BaselineAnswers);
   };
 
   if (status === 'loading') {
@@ -142,7 +128,7 @@ export default function BaselineSurvey() {
           </div>
         </div>
 
-        {/* プログレスバー: 5セグメント */}
+        {/* プログレスバー */}
         <div className="flex shrink-0 gap-0.5 rounded-xl border-4 border-gray-800 bg-gray-100 p-1">
           {Array.from({ length: totalQuestions }).map((_, i) => (
             <div
