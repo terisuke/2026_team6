@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSetAtom } from 'jotai';
 import type { ResultResponse } from '@/features/result/types';
 import { resultAtom } from '@/stores/result';
-import { getResult } from '@/lib/api';
+import { getAnalysisResult } from '@/lib/db';
 
 const MIN_LOADING_MS = 2000;
 
@@ -16,7 +16,9 @@ async function fetchResult(): Promise<ResultResponse> {
   const userId =
     typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
   if (!userId) throw new Error('ユーザーが見つかりません');
-  return await getResult(userId);
+  const result = await getAnalysisResult(userId);
+  if (!result) throw new Error('結果が見つかりません');
+  return result;
 }
 
 export type ResultStatus = 'loading' | 'error' | 'success';
