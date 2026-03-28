@@ -2,10 +2,8 @@ export type AnswerOption = 'A' | 'B' | 'C' | 'D';
 
 export type QuestionKey =
   | 'q1_caution'
-  | 'q2_calmness'
-  | 'q3_logic'
-  | 'q4_cooperativeness'
-  | 'q5_positivity';
+  | 'q2_cooperativeness'
+  | 'q3_positivity';
 
 export type BaselineAnswers = Record<QuestionKey, AnswerOption>;
 
@@ -32,27 +30,7 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    key: 'q2_calmness',
-    label: '感動的な映画を見終わった直後は？',
-    options: [
-      { value: 'A', label: 'ストーリーの構成を分析する' },
-      { value: 'B', label: '心の中で静かに余韻に浸る' },
-      { value: 'C', label: '「最高だった！」と熱く語る' },
-      { value: 'D', label: '感情移入して思い切り泣く' },
-    ],
-  },
-  {
-    key: 'q3_logic',
-    label: '新しい服を買うときの決め手は？',
-    options: [
-      { value: 'A', label: '着回しやすさや素材の良さ' },
-      { value: 'B', label: '今の流行や使い勝手' },
-      { value: 'C', label: 'デザインの第一印象' },
-      { value: 'D', label: '一目惚れで即決' },
-    ],
-  },
-  {
-    key: 'q4_cooperativeness',
+    key: 'q2_cooperativeness',
     label: '大人数での食事。自分の注文は？',
     options: [
       { value: 'A', label: '全体のバランスを見て合わせる' },
@@ -62,7 +40,7 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    key: 'q5_positivity',
+    key: 'q3_positivity',
     label: '初対面の人が多いパーティーでは？',
     options: [
       { value: 'A', label: '自分からどんどん話しかける' },
@@ -72,3 +50,21 @@ export const QUESTIONS: Question[] = [
     ],
   },
 ];
+
+/** 回答 → 0-100 スコア変換 */
+const ANSWER_SCORE: Record<AnswerOption, number> = {
+  A: 100,
+  B: 75,
+  C: 25,
+  D: 0,
+};
+
+export function answersToScores(answers: BaselineAnswers) {
+  return {
+    caution: ANSWER_SCORE[answers.q1_caution],
+    calmness: 50,           // マウス行動で測定するためデフォルト
+    logic: 50,              // マウス行動で測定するためデフォルト
+    cooperativeness: ANSWER_SCORE[answers.q2_cooperativeness],
+    positivity: ANSWER_SCORE[answers.q3_positivity],
+  };
+}

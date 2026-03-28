@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSetAtom } from 'jotai';
-import type { ResultResponse } from '@/features/result/types';
 import { resultAtom } from '@/stores/result';
-import { getResult } from '@/lib/api';
 
 const MIN_LOADING_MS = 2000;
 
@@ -12,18 +10,26 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchResult(): Promise<ResultResponse> {
+async function fetchResult() {
   const userId =
-    typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
+    typeof window !== 'undefined'
+      ? localStorage.getItem('real_you_user_id')
+      : null;
   if (!userId) throw new Error('ユーザーが見つかりません');
-  return await getResult(userId);
+
+  const res = await fetch(`/api/results/${userId}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? '結果の取得に失敗しました');
+  }
+  return res.json();
 }
 
 export type ResultStatus = 'loading' | 'error' | 'success';
 
 export function useResult() {
   const [status, setStatus] = useState<ResultStatus>('loading');
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState('');
   const setResult = useSetAtom(resultAtom);
   const [fetchKey, setFetchKey] = useState(0);
 
@@ -39,7 +45,7 @@ export function useResult() {
       .catch((err: unknown) => {
         if (ignore) return;
         setErrorMessage(
-          err instanceof Error ? err.message : '結果の取得に失敗しました'
+          err instanceof Error ? err.message : '結果の取得に失敗しました',
         );
         setStatus('error');
       });

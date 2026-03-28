@@ -4,23 +4,22 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAtomValue } from 'jotai';
 import { useRouter } from 'next/navigation';
 import { mbtiAtom } from '@/stores/diagnosis';
-import { game1DataAtom } from '@/stores/games';
 import {
   QUESTIONS,
+  answersToScores,
   type QuestionKey,
   type BaselineAnswers,
   type AnswerOption,
 } from '@/features/diagnosis/types';
 import LoadingScreen from '@/components/common/LoadingScreen';
-import { postRegister, submitGame } from '@/lib/api';
+import { registerUser } from '@/lib/db';
+import { getMbtiScores } from '@/lib/analysis/mbtiScoreTable';
 
-type Status = 'answering' | 'loading' | 'error' | 'success';
+type Status = 'answering' | 'loading' | 'error';
 
-// TODO: UIは仮のものです。
 export default function BaselineSurvey() {
   const router = useRouter();
   const mbti = useAtomValue(mbtiAtom);
-  const game1Data = useAtomValue(game1DataAtom);
 
   const bgmRef = useRef<HTMLAudioElement | null>(null);
 
@@ -30,7 +29,6 @@ export default function BaselineSurvey() {
     audio.play().catch(() => {});
   }, []);
 
-  // BGMの初期化と再生管理
   useEffect(() => {
     const bgm = new Audio('/sounds/start-bgm.mp3');
     bgm.loop = true;
@@ -41,7 +39,6 @@ export default function BaselineSurvey() {
       bgm.play().catch(() => {});
       window.removeEventListener('click', playBGM);
     };
-
     window.addEventListener('click', playBGM);
     playBGM();
 
@@ -63,33 +60,28 @@ export default function BaselineSurvey() {
   const submitToApi = useCallback(
     async (finalAnswers: BaselineAnswers) => {
       setStatus('loading');
+      if (bgmRef.current) bgmRef.current.pause();
 
       try {
-        const result = await postRegister({
-          mbti,
-          baseline_answers: finalAnswers,
-        });
+        const baseScores = answersToScores(finalAnswers);
 
-        localStorage.setItem('user_id', result.user_id);
-
-        if (game1Data) {
-          await submitGame({
-            user_id: result.user_id,
-            game_type: 1,
-            data: game1Data as unknown as Record<string, unknown>,
-          });
+        // MBTI提供時は冷静さ・論理性をMBTI理論値で補完
+        if (mbti) {
+          const mbtiScores = getMbtiScores(mbti);
+          if (mbtiScores) {
+            baseScores.calmness = Math.round(baseScores.calmness * 0.3 + mbtiScores.calmness * 0.7);
+            baseScores.logic = Math.round(baseScores.logic * 0.3 + mbtiScores.logic * 0.7);
+          }
         }
 
-        setStatus('success');
-
-        setTimeout(() => {
-          router.push('/games/helpdesk');
-        }, 2000);
+        const userId = await registerUser({ mbti, baselineScores: baseScores });
+        localStorage.setItem('real_you_user_id', userId);
+        router.push('/game');
       } catch {
         setStatus('error');
       }
     },
-    [mbti, router, game1Data]
+    [mbti, router],
   );
 
   const handleAnswer = (value: AnswerOption) => {
@@ -110,7 +102,7 @@ export default function BaselineSurvey() {
   };
 
   if (status === 'loading') {
-    return <LoadingScreen message="送信中..." />;
+    return <LoadingScreen />;
   }
 
   if (status === 'error') {
@@ -127,22 +119,17 @@ export default function BaselineSurvey() {
     );
   }
 
-  if (status === 'success') {
-    return <LoadingScreen message="ゲームに移動中..." />;
-  }
-
   return (
     <div className="relative w-full max-w-2xl">
-      {/* ヘッダー: タイトル + プログレスバー */}
+      {/* ヘッダー */}
       <div className="mb-0 flex items-start justify-between gap-4">
-        {/* タイトルエリア - メインカードに少し重なる */}
         <div className="relative z-10 flex flex-col">
           <div className="rounded-2xl border-4 border-gray-800 bg-white px-6 py-3 shadow-md">
             <h1 className="text-xl font-bold text-gray-900">質問コーナー</h1>
           </div>
         </div>
 
-        {/* プログレスバー: 5セグメント */}
+        {/* プログレスバー */}
         <div className="flex shrink-0 gap-0.5 rounded-xl border-4 border-gray-800 bg-gray-100 p-1">
           {Array.from({ length: totalQuestions }).map((_, i) => (
             <div
@@ -155,13 +142,12 @@ export default function BaselineSurvey() {
         </div>
       </div>
 
-      {/* メインカード: 質問 + 4択 - タイトルと重なる */}
+      {/* メインカード */}
       <div className="relative -mt-4 rounded-3xl border-4 border-gray-800 bg-white p-6 shadow-lg">
         <p className="mb-6 text-xl font-bold text-gray-900">
           Q{currentIndex + 1}. {currentQuestion.label}
         </p>
 
-        {/* 2x2グリッドの選択肢 */}
         <div className="grid grid-cols-2 gap-4">
           {currentQuestion.options.map((option) => (
             <button
